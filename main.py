@@ -235,7 +235,7 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
         # Automatically normalize the input features
         env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
 
-        model = algo(MlpPolicy, env, seedy=seed, gamma=g, n_steps=128,
+        model = algo(MlpPolicy, env,  gamma=g, n_steps=128,
                      ent_coef=0.01, learning_rate=lr, vf_coef=0.5, max_grad_norm=0.5,
                      lam=0.95, nminibatches=4, noptepochs=4, cliprange=cliprange,
                      cliprange_vf=None,  # tensorboard_log="./tensorlog",
