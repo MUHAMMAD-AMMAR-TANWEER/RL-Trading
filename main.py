@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 import csv
 import os
-import csv
+
 import json
 import getopt
 import quandl
@@ -247,6 +247,7 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
         before[loop] = evaluate(model, num_steps=steps)
 
         model.learn(total_timesteps=round(steps))
+        model.save("Dan_RL2")
 
         print("\n*** Evaluate the trained agent ***")
         after[loop] = evaluate(model, num_steps=steps)
@@ -259,6 +260,9 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
         env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
         steps = len(np.unique(test.date))
         backtest[loop] = evaluate(model, num_steps=steps)
+        a = evaluate(model, num_steps=steps)
+        print(a)
+        # model.save("Dan_RL2")
 
         del model
         env.close()
@@ -276,7 +280,7 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
                          "Seed": seed, "cliprange": cliprange, "learningRate": lr, "gamma": g,
                          "backtest  # ": np.arange(noBacktest), "StartTrainDate": min(train.date),
                          "EndTrainDate": train_dates, "before": before,
-                         "after": after, "testDate": end_test_dates, "Sum Reward@roadTest": backtest})
+                         "after": after, "testDate": end_test_dates, "Sum Reward@roadTest": backtest}),loop
 
 
 def chkArgs(argv):
@@ -333,8 +337,10 @@ def chkArgs(argv):
 
     uniqueId = model_name + "_" + portfolio_name + "_" + datetime.now().strftime("%Y%m%d %H%M")
 
-    summary = train(algo, df, model_name, uniqueId, lr=lr,
+    summary,loop = train(algo, df, model_name, uniqueId, lr=lr,
                     gamma=None, noBacktest=backtest, cutoff_date=cutoff_date, commission=commission, addTA=addTA)
+
+    print(loop)
 
     with open('summary.csv', 'a') as f:
         summary.to_csv(f, header=True)
@@ -350,7 +356,7 @@ def testSplit(df):
     dates = np.unique(df.date)
     backtest = 1
     # cutoff_date = '2018-03-23T00:00:00.000000000'
-    cutoff_date = np.datetime64('2016-01-04')
+    cutoff_date = np.datetime64('2018-01-04')
 
     if backtest == 1:
         a = np.where(dates < cutoff_date)[0]

@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pandas as pd
 from gym.utils import seeding
@@ -62,6 +64,8 @@ class StockEnvPlayer(gym.Env):
             column = 'model, incTA?, step, date, cash, portfolio, reward, total_commission, buy_amt, buy_commission, sell_amt, sell_commission,' + \
                 ','.join(ap) + ',' + ','.join(aq) + ',' + '\n'
             f.write(column)
+    def _update_df(self,df_new):#Now can update dataframe via this funtion and can store it
+        self.df = df
 
     def reset(self):
         self.portfolio_value = [self.initial_investment]
