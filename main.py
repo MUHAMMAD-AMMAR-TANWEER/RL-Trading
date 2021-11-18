@@ -31,16 +31,20 @@ set_global_seeds(seed)
 np.random.seed(seed)
 
 
-def dateparse1(x): return pd.datetime.strptime(x, '%Y%m%d')
+def dateparse1(x):
+    return pd.datetime.strptime(x, "%Y%m%d")
 
 
-def dateparse2(x): return pd.datetime.strptime(x, '%Y/%m/%d')
+def dateparse2(x):
+    return pd.datetime.strptime(x, "%Y/%m/%d")
 
 
-def dateparse3(x): return pd.datetime.strptime(x, '%b %d, %Y')
+def dateparse3(x):
+    return pd.datetime.strptime(x, "%b %d, %Y")
 
 
-def dateparse(x): return pd.datetime.strptime(x, '%Y-%m-%d')
+def dateparse(x):
+    return pd.datetime.strptime(x, "%Y-%m-%d")
 
 
 def evaluate(model, num_steps=1000):
@@ -62,29 +66,47 @@ def evaluate(model, num_steps=1000):
     return np.sum(episode_rewards)
 
 
-def get_data(config, portfolio=0, refreshData=False, addTA='N'):
-    columns = ['ticker', 'date', 'adj_open', 'adj_close', 'adj_high', 'adj_low', 'adj_volume']
+def get_data(config, portfolio=0, refreshData=False, addTA="N"):
+    columns = [
+        "ticker",
+        "date",
+        "adj_open",
+        "adj_close",
+        "adj_high",
+        "adj_low",
+        "adj_volume",
+    ]
     sample = config["portfolios"][portfolio]
     file = "./data/" + sample["name"] + ".csv"
 
     if not os.path.exists(file) or refreshData:
-        print('Start to download market data')
+        print("Start to download market data")
         quandl.ApiConfig.api_key = config["api"]
-        df = quandl.get_table('WIKI/PRICES', ticker=sample["asset"], qopts={'columns': columns}, date={
-            'gte': sample["start_date"], 'lte': sample["end_date"]}, paginate=True)
+        df = quandl.get_table(
+            "WIKI/PRICES",
+            ticker=sample["asset"],
+            qopts={"columns": columns},
+            date={"gte": sample["start_date"], "lte": sample["end_date"]},
+            paginate=True,
+        )
 
-        df = pre_process(df, addTA='N')
+        df = pre_process(df, addTA="N")
         df.to_csv(file)
         print(file, "saved")
     else:
-        print('Loading file', file)
-        df = pd.read_csv(file, parse_dates=['date'], date_parser=dateparse)
+        print("Loading file", file)
+        df = pd.read_csv(file, parse_dates=["date"], date_parser=dateparse)
         df = pre_process(df, addTA)
     return df
 
 
-def pre_process(df, addTA='N'):
-    df = df.sort_values(by=["ticker", "date", ])
+def pre_process(df, addTA="N"):
+    df = df.sort_values(
+        by=[
+            "ticker",
+            "date",
+        ]
+    )
     d = df.date.unique()
     tmp = pd.DataFrame({"date": d}, index=d)
 
@@ -93,13 +115,13 @@ def pre_process(df, addTA='N'):
     for t in tickers:
         ticker = df.loc[df.ticker == t]
         # force all stock to have same date range
-        ticker = pd.merge(tmp, ticker, how='left', on='date')
-        ticker.fillna(method='ffill').fillna(method='bfill')
+        ticker = pd.merge(tmp, ticker, how="left", on="date")
+        ticker.fillna(method="ffill").fillna(method="bfill")
 
         # add Techical Analysis to each stock
-        if addTA == 'Y':
+        if addTA == "Y":
             ticker = add_techicalAnalysis(ticker)
-            ticker = ticker.fillna(method='ffill').fillna(method='bfill')
+            ticker = ticker.fillna(method="ffill").fillna(method="bfill")
 
         df2 = pd.concat([df2, ticker], axis=0)
     # df2.to_csv("p3.csv")
@@ -120,34 +142,35 @@ def add_techicalAnalysis(df):
     # =====================================
     # Overlap Studies
     # =====================================
-    df['EMA'] = talib.EMA(close_price)
+    df["EMA"] = talib.EMA(close_price)
     # TEMA - Triple Exponential Moving Average
-    df['TEMA'] = talib.EMA(close_price)
+    df["TEMA"] = talib.EMA(close_price)
     # WMA - Weighted Moving Average
-    #df['WMA'] = talib.WMA(close_price, timeperiod=30)
+    # df['WMA'] = talib.WMA(close_price, timeperiod=30)
     # HT_TRENDLINE - Hilbert Transform - Instantaneous Trendline
-    #df['HT_TRENDLINE'] = talib.HT_TRENDLINE(close_price)
+    # df['HT_TRENDLINE'] = talib.HT_TRENDLINE(close_price)
 
     # =====================================
     # Momentum Indicator Functions
     # =====================================
     # APO - Absolute Price Oscillator
-    df['APO'] = talib.APO(close_price, fastperiod=12, slowperiod=26, matype=0)
+    df["APO"] = talib.APO(close_price, fastperiod=12, slowperiod=26, matype=0)
     # CMO - Chande Momentum Oscillator
-    df['CMO'] = talib.CMO(close_price, timeperiod=14)
+    df["CMO"] = talib.CMO(close_price, timeperiod=14)
     # MACD - Moving Average Convergence/Divergence
-    df['MACD'], df['MACD_SIG'], df['MACD_HIST'] = talib.MACD(
-        close_price, fastperiod=12, slowperiod=26, signalperiod=9)
+    df["MACD"], df["MACD_SIG"], df["MACD_HIST"] = talib.MACD(
+        close_price, fastperiod=12, slowperiod=26, signalperiod=9
+    )
     # MOM - Momentum
-    df['MOM'] = talib.MOM(close_price)
+    df["MOM"] = talib.MOM(close_price)
     # PPO - Percentage Price Oscillator
-    df['PPO'] = talib.PPO(close_price, fastperiod=12, slowperiod=26, matype=0)
+    df["PPO"] = talib.PPO(close_price, fastperiod=12, slowperiod=26, matype=0)
     # ROCP - Rate of change Percentage: (price-prevPrice)/prevPrice
-    df['ROCP'] = talib.ROCP(close_price, timeperiod=10)
+    df["ROCP"] = talib.ROCP(close_price, timeperiod=10)
     # RSI - Relative Strength Index
-    df['RSI'] = talib.RSI(close_price, timeperiod=14)
+    df["RSI"] = talib.RSI(close_price, timeperiod=14)
     # TRIX - 1-day Rate-Of-Change (ROC) of a Triple Smooth EMA
-    df['TRIX'] = talib.TRIX(close_price)
+    df["TRIX"] = talib.TRIX(close_price)
 
     # NOT USED
     # ADXR - Average Directional Movement Index Rating
@@ -165,15 +188,15 @@ def add_techicalAnalysis(df):
     # Cycle Indicator Functions
     # =====================================
     # HT_DCPERIOD - Hilbert Transform - Dominant Cycle Period
-    df['HT_DCPERIOD'] = talib.HT_DCPERIOD(close_price)
+    df["HT_DCPERIOD"] = talib.HT_DCPERIOD(close_price)
     # HT_DCPHASE - Hilbert Transform - Dominant Cycle Phase
-    df['HT_DCPHASE'] = talib.HT_DCPHASE(close_price)
+    df["HT_DCPHASE"] = talib.HT_DCPHASE(close_price)
     # HT_SINE - Hilbert Transform - SineWave
-    df['SINE'], df['LEADSINE'] = talib.HT_SINE(close_price)
+    df["SINE"], df["LEADSINE"] = talib.HT_SINE(close_price)
     # HT_TRENDMODE - Hilbert Transform - Trend vs Cycle Mode
-    #df['HT_TRENDMODE'] = talib.HT_TRENDMODE(close_price)
+    # df['HT_TRENDMODE'] = talib.HT_TRENDMODE(close_price)
     # HT_PHASOR - Hilbert Transform - Phasor Components
-    df['INPHASE'], df['QUADRATURE'] = talib.HT_PHASOR(close_price)
+    df["INPHASE"], df["QUADRATURE"] = talib.HT_PHASOR(close_price)
 
     # NOT USED
     # df['PLUS_DI'] = talib.PLUS_DI(high_price, low_price, close_price)
@@ -183,7 +206,18 @@ def add_techicalAnalysis(df):
     return df
 
 
-def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cutoff_date=None, commission=0, addTA='N'):
+def train(
+    algo,
+    df,
+    model_name,
+    uniqueId,
+    lr=None,
+    gamma=None,
+    noBacktest=1,
+    cutoff_date=None,
+    commission=0,
+    addTA="N",
+):
     before = np.zeros(noBacktest)
     after = np.zeros(noBacktest)
     backtest = np.zeros(noBacktest)
@@ -223,23 +257,54 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
         end_test_dates[loop] = max(test.date)
 
         n_actions = 1
-        action_noise = NormalActionNoise(mean=np.zeros(
-            n_actions), sigma=0.1 * np.ones(n_actions))
+        action_noise = NormalActionNoise(
+            mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
+        )
         global env
 
-        title = runtimeId + "_Train lr=" + \
-            str(lr) + ", cliprange=" + str(cliprange) + ", commission=" + str(commission)
+        title = (
+            runtimeId
+            + "_Train lr="
+            + str(lr)
+            + ", cliprange="
+            + str(cliprange)
+            + ", commission="
+            + str(commission)
+        )
         env = DummyVecEnv(
-            [lambda: StockEnvPlayer(train, logfile + runtimeId + ".csv", title, seed=seed, commission=commission, addTA=addTA)])
+            [
+                lambda: StockEnvPlayer(
+                    train,
+                    logfile + runtimeId + ".csv",
+                    title,
+                    seed=seed,
+                    commission=commission,
+                    addTA=addTA,
+                )
+            ]
+        )
 
         # Automatically normalize the input features
-        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
+        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
 
-        model = algo(MlpPolicy, env,  gamma=g, n_steps=128,
-                     ent_coef=0.01, learning_rate=lr, vf_coef=0.5, max_grad_norm=0.5,
-                     lam=0.95, nminibatches=4, noptepochs=4, cliprange=cliprange,
-                     cliprange_vf=None,  # tensorboard_log="./tensorlog",
-                     _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False, )
+        model = algo(
+            MlpPolicy,
+            env,
+            gamma=g,
+            n_steps=128,
+            ent_coef=0.01,
+            learning_rate=lr,
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            lam=0.95,
+            nminibatches=4,
+            noptepochs=4,
+            cliprange=cliprange,
+            cliprange_vf=None,  # tensorboard_log="./tensorlog",
+            _init_setup_model=True,
+            policy_kwargs=None,
+            full_tensorboard_log=False,
+        )
 
         # Random Agent, before training
         print("\n*** Agent before learning ***")
@@ -253,11 +318,28 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
         after[loop] = evaluate(model, num_steps=steps)
 
         print("\n*** Run agent on unseen data ***")
-        title = runtimeId + "_Test lr=" + \
-            str(lr) + ", cliprange=" + str(cliprange) + ", commission=" + str(commission)
+        title = (
+            runtimeId
+            + "_Test lr="
+            + str(lr)
+            + ", cliprange="
+            + str(cliprange)
+            + ", commission="
+            + str(commission)
+        )
         env = DummyVecEnv(
-            [lambda: StockEnvPlayer(test, logfile + runtimeId + ".csv", title, seed=seed, commission=commission, addTA=addTA)])
-        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
+            [
+                lambda: StockEnvPlayer(
+                    test,
+                    logfile + runtimeId + ".csv",
+                    title,
+                    seed=seed,
+                    commission=commission,
+                    addTA=addTA,
+                )
+            ]
+        )
+        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
         steps = len(np.unique(test.date))
         backtest[loop] = evaluate(model, num_steps=steps)
         a = evaluate(model, num_steps=steps)
@@ -273,22 +355,45 @@ def train(algo, df, model_name, uniqueId, lr=None, gamma=None, noBacktest=1, cut
     for i in range(noBacktest):
         print("\ntrain_dates:", min(df.date), train_dates[i])
         print("test_dates:", start_test_dates[i], end_test_dates[i])
-        print("backtest {} : SUM reward : before | after | backtest : {: 8.2f} | {: 8.2f} | {: 8.2f}".format(
-            i, before[i], after[i], backtest[i]))
+        print(
+            "backtest {} : SUM reward : before | after | backtest : {: 8.2f} | {: 8.2f} | {: 8.2f}".format(
+                i, before[i], after[i], backtest[i]
+            )
+        )
 
-    return pd.DataFrame({"Model": uniqueId, "addTA": addTA, "Columns": str(df.columns.tolist()), "commission": commission,
-                         "Seed": seed, "cliprange": cliprange, "learningRate": lr, "gamma": g,
-                         "backtest  # ": np.arange(noBacktest), "StartTrainDate": min(train.date),
-                         "EndTrainDate": train_dates, "before": before,
-                         "after": after, "testDate": end_test_dates, "Sum Reward@roadTest": backtest}),loop
+    return (
+        pd.DataFrame(
+            {
+                "Model": uniqueId,
+                "addTA": addTA,
+                "Columns": str(df.columns.tolist()),
+                "commission": commission,
+                "Seed": seed,
+                "cliprange": cliprange,
+                "learningRate": lr,
+                "gamma": g,
+                "backtest  # ": np.arange(noBacktest),
+                "StartTrainDate": min(train.date),
+                "EndTrainDate": train_dates,
+                "before": before,
+                "after": after,
+                "testDate": end_test_dates,
+                "Sum Reward@roadTest": backtest,
+            }
+        ),
+        loop,
+    )
 
 
 def chkArgs(argv):
     try:
         opts, args = getopt.getopt(
-            argv, "hb:p:t:r", ["backtest=", "portfolio=", "addtechicalAnalysis=", "refreshData=True"])
+            argv,
+            "hb:p:t:r",
+            ["backtest=", "portfolio=", "addtechicalAnalysis=", "refreshData=True"],
+        )
     except getopt.GetoptError:
-        print('main.py')
+        print("main.py")
         sys.exit(2)
 
     model_name = "ppo2"
@@ -296,12 +401,14 @@ def chkArgs(argv):
     refreshData = 0
     portfolio = 4
     backtest = 1
-    addTA = 'N'
+    addTA = "N"
     commission = 0
 
     for opt, arg in opts:
-        if opt == '-h':
-            print('python main.py -p <portfolio index> -b <number of back  test> -t <Y|N to add techicalAnalysis')
+        if opt == "-h":
+            print(
+                "python main.py -p <portfolio index> -b <number of back  test> -t <Y|N to add techicalAnalysis"
+            )
             sys.exit()
         elif opt in ("-o", "--ofile"):
             outputfile = arg
@@ -314,7 +421,7 @@ def chkArgs(argv):
         elif opt in ("-t", "--addtechicalAnalysis"):
             addTA = arg
 
-    with open('./config.json', 'r') as f:
+    with open("./config.json", "r") as f:
         config = json.load(f)
 
     df = get_data(config, portfolio=portfolio, refreshData=refreshData, addTA=addTA)
@@ -322,9 +429,32 @@ def chkArgs(argv):
     print("\n\n\n\n\n\n\n\n\n")
 
     # really bad way to choose TA.
-    if addTA == 'Y':
-        df = df[['date', 'ticker', 'adj_close', 'MOM', 'RSI', 'APO', 'HT_DCPERIOD', 'HT_DCPHASE', 'SINE', 'LEADSINE',
-                 'INPHASE', 'QUADRATURE', 'PPO', 'MACD', 'MACD_SIG', 'MACD_HIST', 'CMO', 'ROCP', 'TRIX', 'EMA', 'TEMA']]
+    if addTA == "Y":
+        df = df[
+            [
+                "date",
+                "ticker",
+                "adj_close",
+                "MOM",
+                "RSI",
+                "APO",
+                "HT_DCPERIOD",
+                "HT_DCPHASE",
+                "SINE",
+                "LEADSINE",
+                "INPHASE",
+                "QUADRATURE",
+                "PPO",
+                "MACD",
+                "MACD_SIG",
+                "MACD_HIST",
+                "CMO",
+                "ROCP",
+                "TRIX",
+                "EMA",
+                "TEMA",
+            ]
+        ]
 
     portfolio_name = config["portfolios"][portfolio]["name"]
     commission = config["portfolios"][portfolio]["commission"]
@@ -332,31 +462,43 @@ def chkArgs(argv):
     if "cut_off" in config["portfolios"][portfolio]:
         cutoff_date = config["portfolios"][portfolio]["cut_off"]
     else:
-        cutoff_date = ''
-        backtest = 4 if backtest == '' else backtest
+        cutoff_date = ""
+        backtest = 4 if backtest == "" else backtest
 
-    uniqueId = model_name + "_" + portfolio_name + "_" + datetime.now().strftime("%Y%m%d %H%M")
+    uniqueId = (
+        model_name + "_" + portfolio_name + "_" + datetime.now().strftime("%Y%m%d %H%M")
+    )
 
-    summary,loop = train(algo, df, model_name, uniqueId, lr=lr,
-                    gamma=None, noBacktest=backtest, cutoff_date=cutoff_date, commission=commission, addTA=addTA)
+    summary, loop = train(
+        algo,
+        df,
+        model_name,
+        uniqueId,
+        lr=lr,
+        gamma=None,
+        noBacktest=backtest,
+        cutoff_date=cutoff_date,
+        commission=commission,
+        addTA=addTA,
+    )
 
     print(loop)
 
-    with open('summary.csv', 'a') as f:
+    with open("summary.csv", "a") as f:
         summary.to_csv(f, header=True)
 
 
 def testSplit(df):
-    '''
+    """
     Test to guarantee that split is done on dates instead of row count
-    '''
+    """
     loop = 0
     split = 2
     splits = TimeSeriesSplit(max_train_size=4025, n_splits=split)
     dates = np.unique(df.date)
     backtest = 1
     # cutoff_date = '2018-03-23T00:00:00.000000000'
-    cutoff_date = np.datetime64('2018-01-04')
+    cutoff_date = np.datetime64("2018-01-04")
 
     if backtest == 1:
         a = np.where(dates < cutoff_date)[0]

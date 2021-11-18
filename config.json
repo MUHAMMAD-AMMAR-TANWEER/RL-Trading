@@ -35,7 +35,15 @@
 			"asset": ["DJIA"],
 			"cut_off": "2016-01-01",
 			"commission": "0.00"
+		},
+				{
+			"name": "portfolio5",
+			"desc" : "xiong data data_3['adjcp'] = data_3['prccd'] / data_3['ajexdi']",
+			"asset": ["DJIA"],
+			"cut_off": "2016-01-01",
+			"commission": "0.00"
 		}
+
 
 	]
 }

@@ -55,18 +55,29 @@ set_global_seeds(seed)
 np.random.seed(seed)
 
 
-env = DummyVecEnv(
-    [lambda: StockEnvPlayer(seed=seed, commission=0, addTA="Y")])
-env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
+env = DummyVecEnv([lambda: StockEnvPlayer(seed=seed, commission=0, addTA="Y")])
+env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
 # steps = len(np.unique(test.date))
 # backtest[loop] = evaluate(model, num_steps=steps)
 
 
-
-model = algo(MlpPolicy, env,  gamma=g, n_steps=128,
-                     ent_coef=0.01, learning_rate=lr, vf_coef=0.5, max_grad_norm=0.5,
-                     lam=0.95, nminibatches=4, noptepochs=4, cliprange=cliprange,
-                     cliprange_vf=None,  # tensorboard_log="./tensorlog",
-                     _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False, )
+model = algo(
+    MlpPolicy,
+    env,
+    gamma=g,
+    n_steps=128,
+    ent_coef=0.01,
+    learning_rate=lr,
+    vf_coef=0.5,
+    max_grad_norm=0.5,
+    lam=0.95,
+    nminibatches=4,
+    noptepochs=4,
+    cliprange=cliprange,
+    cliprange_vf=None,  # tensorboard_log="./tensorlog",
+    _init_setup_model=True,
+    policy_kwargs=None,
+    full_tensorboard_log=False,
+)
 
 model.load("Dan_RL")

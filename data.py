@@ -1,14 +1,20 @@
 import pandas as pd
+import alpaca_trade_api as tradeapi
 from main import get_data
 import json
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 from stable_baselines import PPO2
 from stable_baselines.common.vec_env import DummyVecEnv, VecNormalize
-from env.StockEnvPlayer import StockEnvPlayer
+from env.StockEnvPlayerAmmar import StockEnvPlayer
 
-with open('./config.json', 'r') as f:
+with open("./config.json", "r") as f:
     config = json.load(f)
+ALPACA_API_KEY = "PKA0UAERDMIJPKCHAJUY"
+ALPACA_SECRET_KEY = "6vO2LDKznyY3xrHu8zmCUG8oniwQD1h53VwtWXHI"
+base_url = "https://paper-api.alpaca.markets"
+
+api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, base_url, api_version="v2")
 
 df = get_data(config, portfolio=0, refreshData=False, addTA="Y")
 
@@ -26,9 +32,6 @@ def evaluate(model, num_steps=1000):
     episode_rewards = [0.0]
     obs = env.reset()
 
-
-
-
     env.render()
 
     for i in range(num_steps):
@@ -44,20 +47,23 @@ def evaluate(model, num_steps=1000):
 
     return np.sum(episode_rewards)
 
+
 before = np.zeros(noBacktest)
 
 after = np.zeros(noBacktest)
 backtest = np.zeros(noBacktest)
 train_dates = np.empty(noBacktest, dtype="datetime64[s]")
-start_test_dates = np.empty(noBacktest, dtype="datetime64[s]")#date 1970
+start_test_dates = np.empty(noBacktest, dtype="datetime64[s]")  # date 1970
 end_test_dates = np.empty(noBacktest, dtype="datetime64[s]")
 
-dates = np.unique(df.date) #return the list of dates
+dates = np.unique(df.date)  # return the list of dates
 logfile = "./log/"
 
-cutoff_date = np.datetime64('2018-01-04')
-    # backtest=1 uses cut of date to split train/test
-cutoff_date = np.datetime64(cutoff_date)#cutoff_date is between training and testing I set to 2018-01-04
+cutoff_date = np.datetime64("2018-01-04")
+# backtest=1 uses cut of date to split train/test
+cutoff_date = np.datetime64(
+    cutoff_date
+)  # cutoff_date is between training and testing I set to 2018-01-04
 # a = np.where(dates < cutoff_date)[0]
 # print(a)
 if backtest == 1:
@@ -72,30 +78,50 @@ else:
     s.append((a, b))
 loop = 0
 uniqueId = "ACE"
-for train_date_index, test_date_index in s:#loop only runs once
+
+account = api.get_account()
+
+cash = account.portfolio_value
+for train_date_index, test_date_index in s:  # loop only runs once
     train = df[df.date.isin(dates[train_date_index])]
     test = df[df.date.isin(dates[test_date_index])]
 
     runtimeId = uniqueId + "_" + str(loop)
-    train_dates[loop] = max(train.date)
-    start_test_dates[loop] = min(test.date)#2018
-    end_test_dates[loop] = max(test.date)#2021
+    # train_dates[loop] = max(train.date)
+    # start_test_dates[loop] = min(test.date)  # 2018
+    # end_test_dates[loop] = max(test.date)  # 2021
 
     # model = PPO2.load("Dan_RL.pkl")
     # print(test.head())
 
-    last_test = test.iloc[-108:-54]
+    last_test = test.iloc[-27:]
     # print(last_test.head(27))
 
-    title = runtimeId + "_Test lr=" + \
-            str(lr) + ", cliprange=" + str(cliprange) + ", commission=" + str(commission)
+    title = (
+        runtimeId
+        + "_Test lr="
+        + str(lr)
+        + ", cliprange="
+        + str(cliprange)
+        + ", commission="
+        + str(commission)
+    )
 
     global env
     env = DummyVecEnv(
-        [lambda: StockEnvPlayer(last_test, logfile + runtimeId + ".csv", title, seed=seed, commission=commission,
-                                addTA="Y")])
-    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
-
+        [
+            lambda: StockEnvPlayer(
+                last_test,
+                logfile + runtimeId + ".csv",
+                title,
+                seed=seed,
+                commission=commission,
+                addTA="Y",
+                initial_investment=10000.0,
+            )
+        ]
+    )
+    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
 
     steps = len(np.unique(last_test.date))
     print((steps))
@@ -115,15 +141,11 @@ for train_date_index, test_date_index in s:#loop only runs once
         obs, rewards, done, info = env.step(action)
         print(obs)
 
-
         # env.render()
         # print(buy_signal)
         # print("++++++++++++++")
         # print(sell_signal)
         # print("++++++++++++++++")
-
-
-
 
     #
     #
@@ -139,11 +161,7 @@ for train_date_index, test_date_index in s:#loop only runs once
     #     print(_states)#it is none
     # backtest[loop] = evaluate(model, num_steps=steps)
 
-
-
     # a = evaluate(model, num_steps=steps)
-
-
 
 
 def bot(x):
@@ -158,9 +176,11 @@ def bot(x):
     dates = np.unique(df.date)  # return the list of dates
     logfile = "./log/"
 
-    cutoff_date = np.datetime64('2018-01-04')
+    cutoff_date = np.datetime64("2018-01-04")
     # backtest=1 uses cut of date to split train/test
-    cutoff_date = np.datetime64(cutoff_date)  # cutoff_date is between training and testing I set to 2018-01-04
+    cutoff_date = np.datetime64(
+        cutoff_date
+    )  # cutoff_date is between training and testing I set to 2018-01-04
     if backtest == 1:
         a = np.where(dates < cutoff_date)[0]
         b = np.where(dates >= cutoff_date)[0]
@@ -185,29 +205,36 @@ def bot(x):
         # model = PPO2.load("Dan_RL.pkl")
         # print(test.head())
 
-        last_test = test.iloc[-17*int(x):]
+        last_test = test.iloc[-17 * int(x) :]
 
-        title = runtimeId + "_Test lr=" + \
-                str(lr) + ", cliprange=" + str(cliprange) + ", commission=" + str(commission)
+        title = (
+            runtimeId
+            + "_Test lr="
+            + str(lr)
+            + ", cliprange="
+            + str(cliprange)
+            + ", commission="
+            + str(commission)
+        )
 
         global env
         env = DummyVecEnv(
-            [lambda: StockEnvPlayer(last_test, logfile + runtimeId + ".csv", title, seed=seed, commission=commission,
-                                    addTA="Y")])
-        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
+            [
+                lambda: StockEnvPlayer(
+                    last_test,
+                    logfile + runtimeId + ".csv",
+                    title,
+                    seed=seed,
+                    commission=commission,
+                    addTA="Y",
+                    initial_investment=50000,
+                )
+            ]
+        )
+        env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
         steps = len(np.unique(last_test.date))
 
         model = PPO2.load("Dan_RL.pkl")
         backtest[loop] = evaluate(model, num_steps=steps)
 
-
-
-
     return "2"
-
-
-
-
-
-
-
