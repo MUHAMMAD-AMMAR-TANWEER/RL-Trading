@@ -6,7 +6,7 @@ import pandas as pd
 import time
 import talib
 
-from main import get_data
+
 import json
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
@@ -24,8 +24,8 @@ lr = 1e-2
 cliprange = 0.3
 g = 0.99
 
-ALPACA_API_KEY = "PKS6FOS4JTI3F6GRGAOM"
-ALPACA_SECRET_KEY = "zS8y1soTvIvnyCuzsVRz2Mytuf05xvc1HnwTk339"
+ALPACA_API_KEY = "PK0BJ4D2A1TK4IUZIX9W"
+ALPACA_SECRET_KEY = "k5CjuxYXVukdWUZYouHcGk0HAfmxIl85ShmH0BcE"
 base_url = "https://paper-api.alpaca.markets"
 
 api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, base_url, api_version="v2")
@@ -147,7 +147,38 @@ def add_techicalAnalysis(df):
     # HT_PHASOR - Hilbert Transform - Phasor Components
     df["INPHASE"], df["QUADRATURE"] = talib.HT_PHASOR(close_price)
     return df
+def get_data(config, portfolio=0, refreshData=False, addTA="N"):
+    columns = [
+        "ticker",
+        "date",
+        "adj_open",
+        "adj_close",
+        "adj_high",
+        "adj_low",
+        "adj_volume",
+    ]
+    sample = config["portfolios"][portfolio]
+    file = "./data/" + sample["name"] + ".csv"
 
+    if not os.path.exists(file) or refreshData:
+        print("Start to download market data")
+        quandl.ApiConfig.api_key = config["api"]
+        df = quandl.get_table(
+            "WIKI/PRICES",
+            ticker=sample["asset"],
+            qopts={"columns": columns},
+            date={"gte": sample["start_date"], "lte": sample["end_date"]},
+            paginate=True,
+        )
+
+        df = pre_process(df, addTA="N")
+        df.to_csv(file)
+        print(file, "saved")
+    else:
+        print("Loading file", file)
+        df = pd.read_csv(file, parse_dates=["date"], date_parser=dateparse)
+        df = pre_process(df, addTA)
+    return df
 
 def pre_process(df, addTA="N"):
     df = df.sort_values(
@@ -191,7 +222,7 @@ df.to_csv("./data/portfolio0.csv")
 
 df = get_data(config, portfolio=0, refreshData=False, addTA="Y")
 print("break")
-cash = float(account.portfolio_value)
+cash = float(account.buying_power)
 logfile = "./log/"
 loop = 0
 uniqueId = "ACE"
@@ -304,6 +335,8 @@ stock = [
 ]
 
 for m in buy:
+    if cash < 25000.0:
+        continue
     if int(lst_qnty_int[m]) > 0:
         symbol_bars = api.get_barset(stock[m], "minute", 5).df.iloc[0]
         symbol_price = symbol_bars[stock[m]]["close"]
@@ -325,6 +358,8 @@ for m in buy:
 
 
 for m in sell:
+    if cash < 25000.0:
+        continue
     if int(lst_qnty_int[m]) > 0:
         symbol_bars = api.get_barset(stock[m], "minute", 5).df.iloc[0]
         symbol_price = symbol_bars[stock[m]]["close"]
